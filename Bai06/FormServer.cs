@@ -1,5 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+using System;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -12,7 +12,7 @@ namespace Bai06
     {
         TcpListener listener;
         Thread thread;
-        Dictionary<string, TcpClient> clientUsers = new Dictionary<string, TcpClient>();
+        ConcurrentDictionary<string, TcpClient> clientUsers = new ConcurrentDictionary<string, TcpClient>();
 
         public FormServer()
         {
@@ -44,46 +44,49 @@ namespace Bai06
         {
             TcpClient client = (TcpClient)obj;
             NetworkStream ns = client.GetStream();
-            byte[] buffer = new byte[4096];
+            using var reader = new StreamReader(ns, Encoding.UTF8);
             string userName = "";
 
             try
             {
-                while (true)
+                while (reader.ReadLine() is string msg)
                 {
-                    int byteCount = ns.Read(buffer, 0, buffer.Length);
-                    if (byteCount == 0) break;
-
-                    string msg = Encoding.UTF8.GetString(buffer, 0, byteCount);
                     if (msg.StartsWith("NAME|"))
                     {
-                        userName = msg.Substring(5);
-                        clientUsers[userName] = client;
+                        string requestedName = msg.Substring(5).Trim();
+                        if (userName.Length != 0)
+                            continue;
+                        if (requestedName.Length == 0 || !clientUsers.TryAdd(requestedName, client))
+                        {
+                            SendLine(client, "[Server] Tên trống hoặc đã được sử dụng.");
+                            break;
+                        }
+                        userName = requestedName;
                         Broadcast($"[Server] {userName} đã tham gia phòng chat.", client);
                         Invoke(new Action(() => rtbLog.AppendText($"{userName} đã kết nối\n")));
                         continue;
                     }
+                    if (userName.Length == 0)
+                        break;
                     if (msg.StartsWith("PRIVATE|"))
                     {
-                        string[] parts = msg.Split('|');
+                        string[] parts = msg.Split('|', 3);
                         if (parts.Length < 3) continue;
                         string toUser = parts[1];
                         string content = parts[2];
 
-                        if (clientUsers.ContainsKey(toUser))
-                        {
-                            byte[] data = Encoding.UTF8.GetBytes($"(Riêng) {userName}: {content}");
-                            try { clientUsers[toUser].GetStream().Write(data, 0, data.Length); } catch { }
-                        }
+                        if (clientUsers.TryGetValue(toUser, out TcpClient? recipient))
+                            SendLine(recipient, $"(Riêng) {userName}: {content}");
                         continue;
                     }
 
                     // Gửi file
                     if (msg.StartsWith("FILE|"))
                     {
-                        string[] parts = msg.Split('|');
+                        string[] parts = msg.Split('|', 3);
                         if (parts.Length < 3) continue;
-                        string fileName = parts[1];
+                        string fileName = Path.GetFileName(parts[1]);
+                        if (string.IsNullOrWhiteSpace(fileName)) continue;
                         byte[] fileData = Convert.FromBase64String(parts[2]);
 
                         string folder = Application.StartupPath + "\\ReceivedFiles";
@@ -99,11 +102,11 @@ namespace Bai06
                     Invoke(new Action(() => rtbLog.AppendText($"{userName}: {msg}\n")));
                 }
             }
-            catch { }
+            catch (Exception ex) when (ex is IOException or FormatException or InvalidOperationException) { }
             finally
             {
-                if (userName != "" && clientUsers.ContainsKey(userName))
-                    clientUsers.Remove(userName);
+                if (userName.Length != 0)
+                    clientUsers.TryRemove(userName, out _);
 
                 client.Close();
             }
@@ -111,15 +114,22 @@ namespace Bai06
 
         void Broadcast(string msg, TcpClient sender)
         {
-            byte[] data = Encoding.UTF8.GetBytes(msg);
-            foreach (var c in clientUsers.Values)
+            foreach (var client in clientUsers.Values)
             {
-                if (c != sender)
-                {
-                    try { c.GetStream().Write(data, 0, data.Length); } catch { }
-                }
+                if (client != sender)
+                    SendLine(client, msg);
             }
+        }
+
+        private static void SendLine(TcpClient client, string message)
+        {
+            byte[] data = Encoding.UTF8.GetBytes(message + "\n");
+            try
+            {
+                lock (client)
+                    client.GetStream().Write(data, 0, data.Length);
+            }
+            catch (Exception ex) when (ex is IOException or InvalidOperationException or SocketException) { }
         }
     }
 }
-

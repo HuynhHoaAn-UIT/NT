@@ -1,62 +1,56 @@
-using System.Net.Sockets;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 
 namespace Bai02
 {
     public partial class Form1 : Form
     {
+        private Socket? listener;
+
         public Form1()
         {
             InitializeComponent();
+            FormClosed += (_, _) => listener?.Dispose();
         }
 
-        private void btnListen_Click(object sender, EventArgs e)
+        private async void btnListen_Click(object sender, EventArgs e)
         {
-            CheckForIllegalCrossThreadCalls = false;
-            Thread serverThread = new Thread(new ThreadStart(StartUnsafeThread));
-            serverThread.Start();
-        }
-        void StartUnsafeThread()
-        {
+            btnListen.Enabled = false;
+            using var server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            listener = server;
             try
             {
-                int bytesReceived = 0;
-                byte[] recv = new byte[1];
-                Socket clientSocket;
-                Socket listenerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                listenerSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-                IPEndPoint ipepServer = new IPEndPoint(IPAddress.Parse("192.168.56.1"), 8083);
-                listenerSocket.Bind(ipepServer);
-                listenerSocket.Listen(-1);
+                server.Bind(new IPEndPoint(IPAddress.Any, 8080));
+                server.Listen(10);
+                listViewCommand.Items.Add("Telnet server đang lắng nghe tại cổng 8080");
 
-                clientSocket = listenerSocket.Accept();
-                listViewCommand.Items.Add(new ListViewItem("New client connected"));
-
-                while (clientSocket.Connected)
+                while (!IsDisposed)
                 {
-                    string text = "";
-                    do
+                    using var client = await server.AcceptAsync();
+                    listViewCommand.Items.Add("Client đã kết nối");
+                    using var stream = new NetworkStream(client);
+                    using var reader = new StreamReader(stream, Encoding.ASCII);
+                    while (await reader.ReadLineAsync() is string line && !IsDisposed)
                     {
-                        bytesReceived = clientSocket.Receive(recv);
-                        text += Encoding.ASCII.GetString(recv);
-                    } while (text[text.Length - 1] != '\n');
-
-                    listViewCommand.Items.Add(new ListViewItem(text.Trim()));
-
-                    if (text.Trim().ToLower() == "exit")
-                    {
-                        listViewCommand.Items.Add(new ListViewItem("Client disconnected"));
-                        clientSocket.Close();
-                        break;
+                        if (line.Trim().Equals("exit", StringComparison.OrdinalIgnoreCase))
+                            break;
+                        listViewCommand.Items.Add(line);
                     }
+                    if (!IsDisposed)
+                        listViewCommand.Items.Add("Client đã ngắt kết nối");
                 }
-
-                listenerSocket.Close();
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is SocketException or IOException or ObjectDisposedException)
             {
-                MessageBox.Show("Server error: " + ex.Message);
+                if (!IsDisposed)
+                    MessageBox.Show(ex.Message, "Lỗi Telnet");
+            }
+            finally
+            {
+                listener = null;
+                if (!IsDisposed)
+                    btnListen.Enabled = true;
             }
         }
     }
