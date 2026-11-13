@@ -9,4 +9,4 @@ Yêu cầu Windows và .NET 8 SDK. Mở solution bằng Visual Studio với work
 | 3 — TCP một client | `dotnet run --project Bai03` | Mở Server, bấm Listen, mở Client và lần lượt bấm Connect, Send, Disconnect. |
 | 4 — TCP chat room | `dotnet run --project Bai04` | Mở Server, bấm Start. Mở hai cửa sổ Client với hai tên khác nhau, IP `127.0.0.1`, port `8085`. Để trống ô người nhận để gửi cho tất cả client còn lại. |
 
-`BaiDatVe` (đặt vé) và `Bai05` (chọn món) là các project bổ sung. Khi nộp theo PDF 2019, chụp màn hình bốn bài ở trên và ghi lại các bước demo trong báo cáo.
+Khi nộp theo PDF 2019, chụp màn hình bốn bài ở trên và ghi lại các bước demo trong báo cáo.
