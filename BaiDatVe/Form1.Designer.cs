@@ -1,4 +1,4 @@
-﻿namespace Bai06
+﻿namespace BaiDatVe
 {
     partial class Form1
     {
@@ -34,10 +34,11 @@
             // 
             // btnServer
             // 
-            btnServer.BackColor = SystemColors.Info;
-            btnServer.Location = new Point(135, 101);
+            btnServer.BackColor = SystemColors.Highlight;
+            btnServer.Font = new Font("Segoe UI", 13.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            btnServer.Location = new Point(172, 125);
             btnServer.Name = "btnServer";
-            btnServer.Size = new Size(140, 76);
+            btnServer.Size = new Size(187, 70);
             btnServer.TabIndex = 0;
             btnServer.Text = "Open Server";
             btnServer.UseVisualStyleBackColor = false;
@@ -45,10 +46,11 @@
             // 
             // btnClient
             // 
-            btnClient.BackColor = SystemColors.Info;
-            btnClient.Location = new Point(484, 237);
+            btnClient.BackColor = SystemColors.Highlight;
+            btnClient.Font = new Font("Segoe UI", 13.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            btnClient.Location = new Point(523, 245);
             btnClient.Name = "btnClient";
-            btnClient.Size = new Size(140, 76);
+            btnClient.Size = new Size(187, 70);
             btnClient.TabIndex = 1;
             btnClient.Text = "Open Client";
             btnClient.UseVisualStyleBackColor = false;

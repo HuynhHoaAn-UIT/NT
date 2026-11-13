@@ -1,4 +1,4 @@
-namespace Bai06
+namespace BaiDatVe
 {
     internal static class Program
     {

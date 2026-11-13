@@ -1,4 +1,4 @@
-namespace Bai06
+namespace BaiDatVe
 {
     public partial class Form1 : Form
     {
@@ -15,7 +15,7 @@ namespace Bai06
 
         private void btnClient_Click(object sender, EventArgs e)
         {
-            FormClient b= new FormClient();
+            FormClient b=new FormClient();
             b.Show();
         }
     }

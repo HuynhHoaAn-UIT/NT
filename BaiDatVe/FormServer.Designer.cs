@@ -1,4 +1,4 @@
-﻿namespace Bai06
+﻿namespace BaiDatVe
 {
     partial class FormServer
     {
@@ -28,37 +28,49 @@
         /// </summary>
         private void InitializeComponent()
         {
-            btnStart = new Button();
+            btnListen = new Button();
+            lstSeats = new ListBox();
             rtbLog = new RichTextBox();
             SuspendLayout();
             // 
-            // btnStart
+            // btnListen
             // 
-            btnStart.BackColor = SystemColors.Info;
-            btnStart.Location = new Point(526, 32);
-            btnStart.Name = "btnStart";
-            btnStart.Size = new Size(175, 81);
-            btnStart.TabIndex = 0;
-            btnStart.Text = "Start";
-            btnStart.UseVisualStyleBackColor = false;
-            btnStart.Click += btnStart_Click;
+            btnListen.BackColor = SystemColors.HotTrack;
+            btnListen.Font = new Font("Segoe UI", 13.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            btnListen.Location = new Point(548, 29);
+            btnListen.Name = "btnListen";
+            btnListen.Size = new Size(172, 71);
+            btnListen.TabIndex = 0;
+            btnListen.Text = "Listen";
+            btnListen.UseVisualStyleBackColor = false;
+            btnListen.Click += btnListen_Click;
+            // 
+            // lstSeats
+            // 
+            lstSeats.FormattingEnabled = true;
+            lstSeats.Location = new Point(37, 115);
+            lstSeats.Name = "lstSeats";
+            lstSeats.Size = new Size(635, 124);
+            lstSeats.TabIndex = 1;
             // 
             // rtbLog
             // 
-            rtbLog.Location = new Point(23, 119);
+            rtbLog.Location = new Point(37, 257);
             rtbLog.Name = "rtbLog";
-            rtbLog.Size = new Size(726, 303);
-            rtbLog.TabIndex = 1;
+            rtbLog.Size = new Size(683, 181);
+            rtbLog.TabIndex = 2;
             rtbLog.Text = "";
             // 
             // FormServer
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            BackgroundImage = Properties.Resources.bo_suu_tap_hinh_nen_powerpoint_mau_toi;
+            BackgroundImage = Properties.Resources.pngtree_3d_rendered_movie_theatre_with_white_screen_image_3732826;
+            BackgroundImageLayout = ImageLayout.Stretch;
             ClientSize = new Size(800, 450);
             Controls.Add(rtbLog);
-            Controls.Add(btnStart);
+            Controls.Add(lstSeats);
+            Controls.Add(btnListen);
             Name = "FormServer";
             Text = "FormServer";
             ResumeLayout(false);
@@ -66,7 +78,8 @@
 
         #endregion
 
-        private Button btnStart;
+        private Button btnListen;
+        private ListBox lstSeats;
         private RichTextBox rtbLog;
     }
 }

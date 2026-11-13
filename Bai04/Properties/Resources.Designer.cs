@@ -69,15 +69,5 @@ namespace Bai04.Properties {
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
-        /// </summary>
-        internal static System.Drawing.Bitmap pngtree_3d_rendered_movie_theatre_with_white_screen_image_3732826 {
-            get {
-                object obj = ResourceManager.GetObject("pngtree-3d-rendered-movie-theatre-with-white-screen-image_3732826", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
     }
 }

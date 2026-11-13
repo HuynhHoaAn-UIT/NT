@@ -1,109 +1,135 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
+using System;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace Bai04
 {
     public partial class FormServer : Form
     {
-        TcpListener server;
-        List<TcpClient> clients = new List<TcpClient>();
-        Dictionary<string, bool> seats = new Dictionary<string, bool>(); 
-        Thread listenThread;
+        TcpListener listener;
+        Thread thread;
+        ConcurrentDictionary<string, TcpClient> clientUsers = new ConcurrentDictionary<string, TcpClient>();
 
         public FormServer()
         {
             InitializeComponent();
-            LoadSeats();
-            UpdateSeatList();
         }
 
-        void LoadSeats()
+        private void btnStart_Click(object sender, EventArgs e)
         {
-            string[] movies = System.IO.File.ReadAllLines("movies.txt"); 
-            foreach (var movie in movies)
-            {
-                for (int i = 1; i <= 5; i++) 
-                    seats[$"{movie}|A{i}"] = false;
-            }
+            int port = 8085;
+            listener = new TcpListener(IPAddress.Any, port);
+            listener.Start();
+            rtbLog.AppendText("Server started on port " + port + "\n");
+
+            thread = new Thread(ListenForClients) { IsBackground = true };
+            thread.Start();
         }
 
-        void UpdateSeatList()
+        void ListenForClients()
         {
-            lstSeats.Items.Clear();
-            foreach (var s in seats)
-                lstSeats.Items.Add($"{s.Key} - {(s.Value ? "Đã đặt" : "Còn")}");
-        }
-
-
-
-        void StartServer()
-        {
-            server = new TcpListener(IPAddress.Any, 8088);
-            server.Start();
             while (true)
             {
-                TcpClient client = server.AcceptTcpClient();
-                clients.Add(client);
-                Thread t = new Thread(() => HandleClient(client)) { IsBackground = true };
-                t.Start();
+                TcpClient client = listener.AcceptTcpClient();
+                Thread t = new Thread(HandleClient) { IsBackground = true };
+                t.Start(client);
             }
         }
 
-        void HandleClient(TcpClient client)
+        void HandleClient(object obj)
         {
+            TcpClient client = (TcpClient)obj;
             NetworkStream ns = client.GetStream();
-            byte[] buffer = new byte[1024];
-            int bytesRead;
-            while ((bytesRead = ns.Read(buffer, 0, buffer.Length)) > 0)
-            {
-                string msg = Encoding.ASCII.GetString(buffer, 0, bytesRead).Trim();
-                this.Invoke((MethodInvoker)(() => rtbLog.AppendText($"Nhận: {msg}\n")));
+            using var reader = new StreamReader(ns, Encoding.UTF8);
+            string userName = "";
 
-                if (msg.StartsWith("BOOK:"))
+            try
+            {
+                while (reader.ReadLine() is string msg)
                 {
-                    string seatKey = msg.Substring(5);
-                    string resp;
-                    lock (seats)
+                    if (msg.StartsWith("NAME|"))
                     {
-                        if (seats.ContainsKey(seatKey) && !seats[seatKey])
+                        string requestedName = msg.Substring(5).Trim();
+                        if (userName.Length != 0)
+                            continue;
+                        if (requestedName.Length == 0 || !clientUsers.TryAdd(requestedName, client))
                         {
-                            seats[seatKey] = true;
-                            resp = $"SUCCESS:{seatKey}";
+                            SendLine(client, "[Server] Tên trống hoặc đã được sử dụng.");
+                            break;
                         }
-                        else
-                            resp = $"FAIL:{seatKey}";
+                        userName = requestedName;
+                        Broadcast($"[Server] {userName} đã tham gia phòng chat.", client);
+                        Invoke(new Action(() => rtbLog.AppendText($"{userName} đã kết nối\n")));
+                        continue;
                     }
-                    Broadcast(resp);
-                    this.Invoke((MethodInvoker)UpdateSeatList);
+                    if (userName.Length == 0)
+                        break;
+                    if (msg.StartsWith("PRIVATE|"))
+                    {
+                        string[] parts = msg.Split('|', 3);
+                        if (parts.Length < 3) continue;
+                        string toUser = parts[1];
+                        string content = parts[2];
+
+                        if (clientUsers.TryGetValue(toUser, out TcpClient? recipient))
+                            SendLine(recipient, $"(Riêng) {userName}: {content}");
+                        continue;
+                    }
+
+                    // Gửi file
+                    if (msg.StartsWith("FILE|"))
+                    {
+                        string[] parts = msg.Split('|', 3);
+                        if (parts.Length < 3) continue;
+                        string fileName = Path.GetFileName(parts[1]);
+                        if (string.IsNullOrWhiteSpace(fileName)) continue;
+                        byte[] fileData = Convert.FromBase64String(parts[2]);
+
+                        string folder = Application.StartupPath + "\\ReceivedFiles";
+                        System.IO.Directory.CreateDirectory(folder);
+                        string savePath = System.IO.Path.Combine(folder, fileName);
+                        System.IO.File.WriteAllBytes(savePath, fileData);
+
+                        Broadcast($"[Server] {userName} đã gửi file: {fileName}", client);
+                        Invoke(new Action(() => rtbLog.AppendText($"Đã lưu file: {savePath}\n")));
+                        continue;
+                    }
+                    Broadcast($"{userName}: {msg}", client);
+                    Invoke(new Action(() => rtbLog.AppendText($"{userName}: {msg}\n")));
                 }
             }
-        }
-
-        void Broadcast(string msg)
-        {
-            byte[] data = Encoding.ASCII.GetBytes(msg + "\n");
-            foreach (var c in clients)
+            catch (Exception ex) when (ex is IOException or FormatException or InvalidOperationException) { }
+            finally
             {
-                try { if (c.Connected) c.GetStream().Write(data, 0, data.Length); } catch { }
+                if (userName.Length != 0)
+                    clientUsers.TryRemove(userName, out _);
+
+                client.Close();
             }
         }
 
-        private void btnListen_Click(object sender, EventArgs e)
+        void Broadcast(string msg, TcpClient sender)
         {
-            listenThread = new Thread(StartServer) ;
-            listenThread.Start();
-            rtbLog.AppendText("Server đang lắng nghe...\n");
+            foreach (var client in clientUsers.Values)
+            {
+                if (client != sender)
+                    SendLine(client, msg);
+            }
+        }
+
+        private static void SendLine(TcpClient client, string message)
+        {
+            byte[] data = Encoding.UTF8.GetBytes(message + "\n");
+            try
+            {
+                lock (client)
+                    client.GetStream().Write(data, 0, data.Length);
+            }
+            catch (Exception ex) when (ex is IOException or InvalidOperationException or SocketException) { }
         }
     }
 }
- 
-

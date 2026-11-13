@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Bai06.Properties {
+namespace BaiDatVe.Properties {
     using System;
     
     
@@ -39,7 +39,7 @@ namespace Bai06.Properties {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Bai06.Properties.Resources", typeof(Resources).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("BaiDatVe.Properties.Resources", typeof(Resources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -66,6 +66,16 @@ namespace Bai06.Properties {
         internal static System.Drawing.Bitmap bo_suu_tap_hinh_nen_powerpoint_mau_toi {
             get {
                 object obj = ResourceManager.GetObject("bo-suu-tap-hinh-nen-powerpoint-mau-toi", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap pngtree_3d_rendered_movie_theatre_with_white_screen_image_3732826 {
+            get {
+                object obj = ResourceManager.GetObject("pngtree-3d-rendered-movie-theatre-with-white-screen-image_3732826", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
